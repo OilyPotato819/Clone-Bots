@@ -3,15 +3,14 @@ const fs = require('fs');
 const { joinVoiceChannel, createAudioPlayer, createAudioResource } = require('@discordjs/voice');
 require('dotenv').config();
 const download = require('image-downloader');
-const path = require('path');
 
 const guildId = '964752875832111104';
 const vcId = '964752876306055169';
 
-function downloadImage(url, filepath) {
+function downloadImage(url, filepath, client) {
    return download.image({
       url,
-      dest: filepath,
+      dest: `${filepath}/${client.user.username}.webp`,
    });
 }
 
@@ -31,9 +30,11 @@ async function getAvatar(client, originalId) {
       );
 
       function download(user) {
-         downloadImage(user.displayAvatarURL(), '../../profile_pics').then(({ filename }) => {
-            resolve(filename);
-         });
+         downloadImage(user.displayAvatarURL(), '../../profile_pics', client).then(
+            ({ filename }) => {
+               resolve(filename);
+            }
+         );
       }
    });
 }
@@ -41,22 +42,33 @@ async function getAvatar(client, originalId) {
 async function changeAvatar(client, originalId) {
    const filePath = await getAvatar(client, originalId);
 
-   client.user
-      .setAvatar(filePath)
-      .catch((error) => {
-         if (error.code === 50035) {
-            console.log(`${client.user.tag} is changing their avatar too fast. Try again later.`);
-         } else {
-            console.log(error);
-         }
+   client.user.setAvatar(filePath).then(
+      () => fulfilled(),
+      (err) => rejected(err)
+   );
 
-         return;
-      })
-      .then(function () {
-         fs.unlink(filePath, (err) => {
-            if (err) return console.error(err);
-         });
+   function fulfilled() {
+      fs.unlink(filePath, (err) => {
+         if (err) {
+            if (err.code === 'ENOENT') {
+               console.log(
+                  'no such file or directory, trying to unlink file for ' + client.user.tag
+               );
+            } else {
+               console.log(err);
+            }
+            return;
+         }
       });
+   }
+
+   function rejected(error) {
+      if (error.code === 50035) {
+         console.log(`${client.user.tag} is changing their avatar too fast. Try again later.`);
+      } else {
+         console.log(error.code);
+      }
+   }
 }
 
 module.exports = class Bot {
@@ -94,11 +106,11 @@ module.exports = class Bot {
 
       if (!this.soundName) return;
 
-      const soundPath = `../sounds/${this.soundName}`;
+      const soundPath = `sounds/${this.soundName}`;
 
       fs.access(soundPath, fs.F_OK, (err) => {
          if (err) {
-            return console.error(this.client.user.tag, 'sound not found');
+            return console.error('sound not found for ' + this.client.user.tag);
          }
 
          this.player.resource = createAudioResource(soundPath);
