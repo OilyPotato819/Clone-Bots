@@ -1,4 +1,4 @@
-const Bot = require('../index');
+const Bot = require('../bot-class');
 require('dotenv').config({ path: '../.env' });
 
 let simonBot = new Bot(process.env.DISCORD_TOKEN_SIMON, '512415667115524106', 'burger.mp3');

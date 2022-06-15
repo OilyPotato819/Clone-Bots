@@ -1,123 +1,46 @@
-const Discord = require('discord.js');
+const { spawn } = require('child_process');
 const fs = require('fs');
-const { joinVoiceChannel, createAudioPlayer, createAudioResource } = require('@discordjs/voice');
-require('dotenv').config();
-const download = require('image-downloader');
 
-const guildId = '964752875832111104';
-const vcId = '964752876306055169';
+let botsReady = 0;
 
-function downloadImage(url, filepath, client) {
-   return download.image({
-      url,
-      dest: `${filepath}/${client.user.username}.webp`,
+function createBot(name) {
+   const bot = spawn('node', [`bots/${name}`]);
+
+   bot.once('spawn', () => {
+      console.log(`${name} has been spawned`);
    });
-}
 
-async function getAvatar(client, originalId) {
-   return new Promise((resolve) => {
-      const guild = client.guilds.cache.get(guildId);
+   bot.on('error', (error) => {
+      console.log(`${name}: ${error}`);
+   });
 
-      guild.members.fetch(originalId).then(
-         (user) => {
-            download(user);
-         },
-         () => {
-            guild.members.fetch('563161832215281709').then((user) => {
-               download(user);
-            });
-         }
-      );
+   bot.on('close', (code) => {
+      console.log(`${name} exited with code ${code}`);
+   });
 
-      function download(user) {
-         downloadImage(user.displayAvatarURL(), '../../profile_pics', client).then(
-            ({ filename }) => {
-               resolve(filename);
-            }
-         );
+   bot.stdout.on('data', (data) => {
+      if (data.toString() === 'ready') {
+         console.log(`${name}: ` + data.toString());
+
+         botsReady++;
+
+         if (botsReady >= 2) setPipes();
+      } else if (/^[\u0000-\u007f]*$/.test(data.toString())) {
+         console.log(data.toString());
       }
    });
+
+   bot.stderr.on('data', (data) => {
+      console.log(data.toString());
+   });
+
+   return bot;
 }
 
-async function changeAvatar(client, originalId) {
-   const filePath = await getAvatar(client, originalId);
+const bot1Bot = createBot('bot1');
+const bot2Bot = createBot('bot2');
 
-   client.user.setAvatar(filePath).then(
-      () => fulfilled(),
-      (err) => rejected(err)
-   );
-
-   function fulfilled() {
-      fs.unlink(filePath, (err) => {
-         if (err) {
-            if (err.code === 'ENOENT') {
-               console.log(
-                  'no such file or directory, trying to unlink file for ' + client.user.tag
-               );
-            } else {
-               console.log(err);
-            }
-            return;
-         }
-      });
-   }
-
-   function rejected(error) {
-      if (error.code === 50035) {
-         console.log(`${client.user.tag} is changing their avatar too fast. Try again later.`);
-      } else {
-         console.log(error.code);
-      }
-   }
+function setPipes() {
+   bot1Bot.stdout.pipe(bot2Bot.stdin);
+   bot2Bot.stdout.pipe(bot1Bot.stdin);
 }
-
-module.exports = class Bot {
-   constructor(token, originalId, soundName) {
-      this.token = token;
-      this.originalId = originalId;
-      this.soundName = soundName;
-
-      this.client = new Discord.Client({
-         intents: ['GUILDS', 'GUILD_MESSAGES', 'GUILD_VOICE_STATES', 'GUILD_MEMBERS'],
-      });
-
-      this.client.login(this.token);
-
-      this.client.once('ready', () => {
-         console.log(`Logged in as ${this.client.user.tag}`);
-
-         this.run();
-      });
-   }
-
-   run() {
-      changeAvatar(this.client, this.originalId);
-
-      const guild = this.client.guilds.cache.get(guildId);
-
-      this.connection = joinVoiceChannel({
-         channelId: vcId,
-         guildId: guildId,
-         adapterCreator: guild.voiceAdapterCreator,
-         selfDeaf: false,
-      });
-
-      this.player = createAudioPlayer();
-
-      if (!this.soundName) return;
-
-      const soundPath = `sounds/${this.soundName}`;
-
-      fs.access(soundPath, fs.F_OK, (err) => {
-         if (err) {
-            return console.error('sound not found for ' + this.client.user.tag);
-         }
-
-         this.player.resource = createAudioResource(soundPath);
-
-         this.player.play(this.player.resource);
-
-         this.connection.subscribe(this.player);
-      });
-   }
-};
