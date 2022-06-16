@@ -1,12 +1,12 @@
 const Bot = require('../bot-class');
+const fs = require('fs');
 require('dotenv').config({ path: '../.env' });
+const { Readable } = require('stream');
 
-let bot1Bot = new Bot(process.env.DISCORD_TOKEN_BOT1, '', '', '785682503968096280');
+let bot1Bot = new Bot(process.env.DISCORD_TOKEN_BOT1, '', '', '');
 
 function subscribe(userId) {
    let audio = bot1Bot.connection.receiver.subscribe(userId);
-
-   audio.pipe(process.stdout);
 }
 
 bot1Bot.client.once('ready', () => {

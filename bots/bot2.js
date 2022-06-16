@@ -5,8 +5,6 @@ let bot2Bot = new Bot(process.env.DISCORD_TOKEN_BOT2, '', '', '80412717397494994
 
 function subscribe(userId) {
    let audio = bot2Bot.connection.receiver.subscribe(userId);
-
-   audio.pipe(process.stdout);
 }
 
 bot2Bot.client.once('ready', () => {
@@ -16,8 +14,7 @@ bot2Bot.client.once('ready', () => {
       const subscriptions = bot2Bot.connection.receiver.subscriptions;
 
       if (newState.id === bot2Bot.client.user.id) {
-         process.stdout.write('ready');
-
+         console.log(newState.channel);
          newState.channel.members.forEach((member) => {
             if (member.user.bot) return;
 
@@ -29,8 +26,4 @@ bot2Bot.client.once('ready', () => {
          subscriptions.delete(newState.member.id);
       }
    });
-});
-
-process.stdin.on('data', (data) => {
-   bot2Bot.connection.playOpusPacket(data);
 });
