@@ -1,7 +1,5 @@
 const Bot = require('../bot-class');
-const fs = require('fs');
 require('dotenv').config({ path: '../.env' });
-const { Readable } = require('stream');
 
 let bot1Bot = new Bot(process.env.DISCORD_TOKEN_BOT1, '', '', '');
 
@@ -29,8 +27,4 @@ bot1Bot.client.once('ready', () => {
          subscriptions.delete(newState.member.id);
       }
    });
-});
-
-process.stdin.on('data', (data) => {
-   bot1Bot.connection.playOpusPacket(data);
 });

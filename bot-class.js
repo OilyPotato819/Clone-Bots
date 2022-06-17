@@ -16,7 +16,7 @@ module.exports = class Bot {
       this.client.login(this.token);
 
       this.client.once('ready', () => {
-         console.log(`Logged in as ${this.client.user.tag}`);
+         console.log(`message: Logged in as ${this.client.user.tag}`);
 
          this.client.guilds.cache.every((value) => {
             value.members.fetch().then((members) => {
@@ -59,7 +59,7 @@ module.exports = class Bot {
 
       fs.access(soundPath, fs.F_OK, (err) => {
          if (err) {
-            return console.error('sound not found for ' + this.client.user.tag);
+            return console.error('error: sound not found for ' + this.client.user.tag);
          }
 
          this.player.resource = createAudioResource(soundPath);
@@ -88,10 +88,10 @@ module.exports = class Bot {
             this.client.user.setAvatar(this.avatar).catch((error) => {
                if (error.code === 50035) {
                   console.log(
-                     `${this.client.user.tag} is changing their avatar too fast. Try again later.`
+                     `message: ${this.client.user.tag} is changing their avatar too fast. Try again later.`
                   );
                } else {
-                  console.log(error.code);
+                  console.error('error: ' + error.code);
                }
             });
          });
