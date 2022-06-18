@@ -22,6 +22,10 @@ function createBot(name) {
       console.log(data.toString());
    });
 
+   bot.stdout.on('data', (data) => {
+      console.log(data.toString());
+   });
+
    return bot;
 }
 

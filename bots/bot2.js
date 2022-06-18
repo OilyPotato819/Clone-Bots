@@ -14,8 +14,6 @@ bot2Bot.client.once('ready', () => {
       const subscriptions = bot2Bot.connection.receiver.subscriptions;
 
       if (newState.id === bot2Bot.client.user.id) {
-         process.stdout.write('ready');
-
          newState.channel.members.forEach((member) => {
             if (member.user.bot) return;
 
