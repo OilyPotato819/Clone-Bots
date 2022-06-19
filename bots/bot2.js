@@ -1,10 +1,31 @@
 const Bot = require('../bot-class');
 require('dotenv').config({ path: '../.env' });
+const net = require('net');
+
+const clientInfo = net.connect('\\\\.\\pipe\\mypipe');
+
+clientInfo.write('bot2');
+
+clientInfo.on('error', (error) => {
+   console.log(error);
+});
+
+clientInfo.on('data', () => {
+   const client = net.connect('\\\\.\\pipe\\mypipe');
+   client.write('bot2, none');
+   clients.set('none', client);
+});
+
+let clients = new Map();
 
 let bot2Bot = new Bot(process.env.DISCORD_TOKEN_BOT2, '', '', '804127173974949949');
 
-function subscribe(userId) {
+function subscribe(userId, client) {
+   client.write(`bot2, ${userId}`);
+   clients.set(userId, client);
+
    let audio = bot2Bot.connection.receiver.subscribe(userId);
+   audio.pipe(client);
 }
 
 bot2Bot.client.once('ready', () => {
@@ -15,9 +36,9 @@ bot2Bot.client.once('ready', () => {
 
       if (newState.id === bot2Bot.client.user.id) {
          newState.channel.members.forEach((member) => {
-            if (member.user.bot) return;
+            if (member.user.bot && member.id != '987813137988341770') return;
 
-            subscribe(member.user.id);
+            subscribe(member.user.id, net.connect('\\\\.\\pipe\\mypipe'));
          });
       } else if (newState.channelId === bot2Bot.voiceId && !newState.member.user.bot) {
          subscribe(newState.member.id);

@@ -87,9 +87,9 @@ module.exports = class Bot {
          .then(() => {
             this.client.user.setAvatar(this.avatar).catch((error) => {
                if (error.code === 50035) {
-                  console.log(
-                     `${this.client.user.tag} is changing their avatar too fast. Try again later.`
-                  );
+                  // console.log(
+                  //    `${this.client.user.tag} is changing their avatar too fast. Try again later.`
+                  // );
                } else {
                   console.error('error: ' + error.code);
                }
