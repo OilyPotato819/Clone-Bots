@@ -11,17 +11,25 @@ clientInfo.on('error', (error) => {
 });
 
 clientInfo.on('data', () => {
-   const client = net.connect('\\\\.\\pipe\\mypipe');
-   client.write('bot1, none');
-   clients.set('none', client);
-   console.log('creating socket');
+   // const client = net.connect('\\\\.\\pipe\\mypipe');
+   // client.write('bot1, none');
+   // clients.set('none', client);
+   // console.log('bot1 making socket');
 });
 
 let clients = new Map();
 
 let bot1Bot = new Bot(process.env.DISCORD_TOKEN_BOT1, '', '', '804127257664028692');
 
-function subscribe(userId, client) {
+function subscribe(userId) {
+   let client;
+
+   if (clients.has(userId)) {
+      client = clients.get(userId);
+   } else {
+      client = net.connect('\\\\.\\pipe\\mypipe');
+   }
+
    client.write(`bot1, ${userId}`);
    clients.set(userId, client);
 
@@ -39,7 +47,7 @@ bot1Bot.client.once('ready', () => {
          newState.channel.members.forEach((member) => {
             if (member.user.bot) return;
 
-            subscribe(member.user.id, net.connect('\\\\.\\pipe\\mypipe'));
+            subscribe(member.user.id);
          });
       } else if (newState.channelId === bot1Bot.voiceId && !newState.member.user.bot) {
          subscribe(newState.member.id);

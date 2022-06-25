@@ -9,23 +9,42 @@ let server = net.createServer((socket) => {
    if (!info.bot1 || !info.bot2) {
       socket.once('data', (data) => {
          info[data.toString()] = socket;
-      });
 
-      if (info.bot1 && info.bot2) {
-         info.bot1.write('request socket');
-      }
+         setTimeout(() => {
+            socket.write('data');
+            console.log('wrote a data');
+         }, 2000);
+
+         socket.on('data', () => {
+            console.log('got a data');
+         });
+      });
 
       return;
    }
 
    socket.once('data', (data) => {
       const dataArray = data.toString().split(', ');
+      const bot = dataArray[0];
+      const id = dataArray[1];
 
-      sockets[dataArray[0]].set(dataArray[1], socket);
+      sockets[bot].set(id, socket);
 
-      const otherBot = Object.keys(sockets).find((element) => element != dataArray[0]);
+      const otherBot = Object.keys(sockets).find((element) => element != bot);
 
-      // console.log(sockets[otherBot].get('none'));
+      const available = (function () {
+         for (let [key, value] of sockets[otherBot].entries()) {
+            if (value.pipedToId === 'none') {
+               value.pipedToId = id;
+               return value;
+            }
+         }
+
+         socket.pipedToId = 'none';
+         info[otherBot].write('socket request');
+      })();
+
+      // console.log(sockets);
    });
 });
 
