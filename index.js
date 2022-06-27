@@ -23,20 +23,20 @@ let server = net.createServer((socket) => {
 
       const otherBot = Object.keys(sockets).find((element) => element != bot);
 
-      (function () {
-         for (let [key, value] of sockets[otherBot].entries()) {
-            if (value.pipedToId === 'none') {
-               value.pipedToId = id;
-               // sockets[bot].delete(mapValue);
-               return value;
-            }
-         }
+      // for (let [key, value] of sockets[otherBot].entries()) {
+      //    if (value.pipedToId === 'none') {
+      //       value.pipedToId = id;
+      //       // sockets[bot].delete(mapValue);
+      //       return value;
+      //    }
+      // }
 
-         socket.pipedToId = 'none';
-         info[otherBot].write('socket request');
-      })();
+      const chosenSocket = sockets[otherBot].get('available');
 
-      console.log(mapValue);
+      socket.pipedToId = 'none';
+      info[otherBot].write('socket request');
+
+      // console.log(mapValue);
    });
 });
 

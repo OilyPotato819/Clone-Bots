@@ -13,25 +13,17 @@ clientInfo.on('error', (error) => {
 clientInfo.on('data', () => {
    const client = net.connect('\\\\.\\pipe\\mypipe');
    client.write('bot1, available');
-   clients.set('available', client);
+   fillerSockets.set('available', client);
    console.log('bot1 making socket');
 });
 
-let clients = new Map();
+let fillerSockets = new Map();
 
 let bot1Bot = new Bot(process.env.DISCORD_TOKEN_BOT1, '', '', '804127257664028692');
 
 function subscribe(userId) {
-   let client;
-
-   if (clients.has(userId)) {
-      client = clients.get(userId);
-   } else {
-      client = net.connect('\\\\.\\pipe\\mypipe');
-   }
-
+   let client = net.connect('\\\\.\\pipe\\mypipe');
    client.write(`bot1, ${userId}`);
-   clients.set(userId, client);
 
    let audio = bot1Bot.connection.receiver.subscribe(userId);
    audio.pipe(client);
