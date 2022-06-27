@@ -12,8 +12,9 @@ clientInfo.on('error', (error) => {
 
 clientInfo.on('data', () => {
    const client = net.connect('\\\\.\\pipe\\mypipe');
-   client.write('bot2, none');
-   clients.set('none', client);
+   client.write('bot2, available');
+   clients.set('available', client);
+   console.log('bot2 making socket');
 });
 
 let clients = new Map();

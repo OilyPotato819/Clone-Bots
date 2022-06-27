@@ -9,15 +9,6 @@ let server = net.createServer((socket) => {
    if (!info.bot1 || !info.bot2) {
       socket.once('data', (data) => {
          info[data.toString()] = socket;
-
-         setTimeout(() => {
-            socket.write('data');
-            console.log('wrote a data');
-         }, 2000);
-
-         socket.on('data', () => {
-            console.log('got a data');
-         });
       });
 
       return;
@@ -28,14 +19,15 @@ let server = net.createServer((socket) => {
       const bot = dataArray[0];
       const id = dataArray[1];
 
-      sockets[bot].set(id, socket);
+      const mapValue = sockets[bot].set(id, socket);
 
       const otherBot = Object.keys(sockets).find((element) => element != bot);
 
-      const available = (function () {
+      (function () {
          for (let [key, value] of sockets[otherBot].entries()) {
             if (value.pipedToId === 'none') {
                value.pipedToId = id;
+               // sockets[bot].delete(mapValue);
                return value;
             }
          }
@@ -44,7 +36,7 @@ let server = net.createServer((socket) => {
          info[otherBot].write('socket request');
       })();
 
-      // console.log(sockets);
+      console.log(mapValue);
    });
 });
 

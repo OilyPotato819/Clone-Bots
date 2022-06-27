@@ -11,10 +11,10 @@ clientInfo.on('error', (error) => {
 });
 
 clientInfo.on('data', () => {
-   // const client = net.connect('\\\\.\\pipe\\mypipe');
-   // client.write('bot1, none');
-   // clients.set('none', client);
-   // console.log('bot1 making socket');
+   const client = net.connect('\\\\.\\pipe\\mypipe');
+   client.write('bot1, available');
+   clients.set('available', client);
+   console.log('bot1 making socket');
 });
 
 let clients = new Map();
