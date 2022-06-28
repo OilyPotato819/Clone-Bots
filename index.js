@@ -1,7 +1,7 @@
 const { spawn } = require('child_process');
 const net = require('net');
 
-let sockets = { bot1: new Map(), bot2: new Map() };
+let sockets = { bot1: { map: new Map(), filler: [] }, bot2: { map: new Map(), filler: [] } };
 
 let info = {};
 
@@ -14,31 +14,68 @@ let server = net.createServer((socket) => {
       return;
    }
 
+   socket.on('close', (id) => {
+      for (const bot in sockets) {
+         if (sockets[bot].map.get(socket.id)) {
+            sockets[bot].map.delete(socket.id);
+            return;
+         }
+      }
+      socket.emit('end');
+   });
+
    socket.once('data', (data) => {
       const dataArray = data.toString().split(', ');
       const bot = dataArray[0];
       const id = dataArray[1];
 
-      const mapValue = sockets[bot].set(id, socket);
+      let mapValue;
+
+      if (id === 'filler') {
+         mapValue = sockets[bot].filler.push(socket);
+      } else {
+         mapValue = sockets[bot].map.set(id, socket);
+      }
+
+      socket.id = id;
 
       const otherBot = Object.keys(sockets).find((element) => element != bot);
 
-      // for (let [key, value] of sockets[otherBot].entries()) {
-      //    if (value.pipedToId === 'none') {
-      //       value.pipedToId = id;
-      //       // sockets[bot].delete(mapValue);
-      //       return value;
-      //    }
-      // }
-
-      const chosenSocket = sockets[otherBot].get('available');
+      for (let [key, value] of sockets[otherBot].map.entries()) {
+         if (value.pipedToId === 'none') {
+            value.pipedToId = id;
+            socket.pipedToId = key;
+            return;
+         }
+      }
 
       socket.pipedToId = 'none';
       info[otherBot].write('socket request');
-
-      // console.log(mapValue);
    });
 });
+setTimeout(() => {
+   for (const bot in sockets) {
+      sockets[bot].map.forEach((element) => console.log(element.pipedToId));
+      sockets[bot].filler.forEach((element) => console.log(element.pipedToId));
+      // console.log(sockets);
+   }
+}, 3000);
+
+// setTimeout(() => {
+//    info.bot1.write('socket request');
+//    info.bot2.write('socket request');
+//    setTimeout(() => {
+//       const bot1Socket = sockets.bot1.get('filler');
+//       const bot2Socket = sockets.bot2.get('filler');
+
+//       bot1Socket.pipe(bot2Socket);
+//       bot2Socket.pipe(bot1Socket);
+
+//       setTimeout(() => {
+//          bot1Socket.end();
+//       }, 1000);
+//    }, 1000);
+// }, 3000);
 
 server.listen('\\\\.\\pipe\\mypipe');
 

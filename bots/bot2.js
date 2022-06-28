@@ -2,8 +2,10 @@ const Bot = require('../bot-class');
 require('dotenv').config({ path: '../.env' });
 const net = require('net');
 
-const clientInfo = net.connect('\\\\.\\pipe\\mypipe');
+let fillerSockets = [];
+let sockets = new Map();
 
+const clientInfo = net.connect('\\\\.\\pipe\\mypipe');
 clientInfo.write('bot2');
 
 clientInfo.on('error', (error) => {
@@ -12,26 +14,24 @@ clientInfo.on('error', (error) => {
 
 clientInfo.on('data', () => {
    const client = net.connect('\\\\.\\pipe\\mypipe');
-   client.write('bot2, available');
-   clients.set('available', client);
+   client.write('bot2, filler');
+   fillerSockets.push(client);
    console.log('bot2 making socket');
+
+   client.on('end', () => {
+      client.destroy();
+      fillerSockets.splice(fillerSockets.indexOf(client));
+
+      console.log('destroying socket 1');
+   });
 });
 
-let clients = new Map();
-
-let bot2Bot = new Bot(process.env.DISCORD_TOKEN_BOT2, '', '', '804127173974949949');
+let bot2Bot = new Bot(process.env.DISCORD_TOKEN_bot2, '', '', '804127257664028692');
 
 function subscribe(userId) {
-   let client;
-
-   if (clients.has(userId)) {
-      client = clients.get(userId);
-   } else {
-      client = net.connect('\\\\.\\pipe\\mypipe');
-   }
-
+   let client = net.connect('\\\\.\\pipe\\mypipe');
    client.write(`bot2, ${userId}`);
-   clients.set(userId, client);
+   sockets.set(userId, client);
 
    let audio = bot2Bot.connection.receiver.subscribe(userId);
    audio.pipe(client);
@@ -45,7 +45,8 @@ bot2Bot.client.once('ready', () => {
 
       if (newState.id === bot2Bot.client.user.id) {
          newState.channel.members.forEach((member) => {
-            if (member.user.bot && member.id != '987813137988341770') return;
+            // if (member.user.bot) return;
+            if (member.id === bot2Bot.client.user.id) return;
 
             subscribe(member.user.id);
          });
@@ -53,6 +54,8 @@ bot2Bot.client.once('ready', () => {
          subscribe(newState.member.id);
       } else if (subscriptions.size > 0 && oldState.channelId === bot2Bot.voiceId) {
          subscriptions.delete(newState.member.id);
+         sockets.get(newState.member.id).destroy();
+         sockets.delete(newState.member.id);
       }
    });
 });
