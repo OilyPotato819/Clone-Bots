@@ -1,6 +1,7 @@
 const Bot = require('../bot-class');
 require('dotenv').config({ path: '../.env' });
 const net = require('net');
+const { stdout } = require('process');
 
 let fillerSockets = [];
 let sockets = new Map();
@@ -35,6 +36,11 @@ function subscribe(userId) {
 
    let audio = bot1Bot.connection.receiver.subscribe(userId);
    audio.pipe(client);
+
+   client.on('data', (opusPacket) => {
+      bot1Bot.connection.playOpusPacket(opusPacket);
+      console.log('playing');
+   });
 }
 
 bot1Bot.client.once('ready', () => {

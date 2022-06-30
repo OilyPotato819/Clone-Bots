@@ -1,9 +1,10 @@
 const { spawn } = require('child_process');
+const { request } = require('http');
 const net = require('net');
 
 let sockets = { bot1: { map: new Map(), filler: [] }, bot2: { map: new Map(), filler: [] } };
-
 let info = {};
+let requests = [];
 
 let server = net.createServer((socket) => {
    if (!info.bot1 || !info.bot2) {
@@ -14,7 +15,7 @@ let server = net.createServer((socket) => {
       return;
    }
 
-   socket.on('close', (id) => {
+   socket.on('close', () => {
       for (const bot in sockets) {
          if (sockets[bot].map.get(socket.id)) {
             sockets[bot].map.delete(socket.id);
@@ -24,58 +25,65 @@ let server = net.createServer((socket) => {
       socket.emit('end');
    });
 
-   socket.once('data', (data) => {
-      const dataArray = data.toString().split(', ');
-      const bot = dataArray[0];
-      const id = dataArray[1];
+   //    socket.once('data', (data) => {
+   //       const dataArray = data.toString().split(', ');
+   //       const bot = dataArray[0];
+   //       const id = dataArray[1];
 
-      let mapValue;
+   //       let mapValue;
 
-      if (id === 'filler') {
-         mapValue = sockets[bot].filler.push(socket);
-      } else {
-         mapValue = sockets[bot].map.set(id, socket);
-      }
+   //       if (id === 'filler') {
+   //          mapValue = sockets[bot].filler.push(socket);
+   //       } else {
+   //          mapValue = sockets[bot].map.set(id, socket);
+   //       }
 
-      socket.id = id;
+   //       socket.id = id;
 
-      const otherBot = Object.keys(sockets).find((element) => element != bot);
+   //       const otherBot = Object.keys(sockets).find((element) => element != bot);
 
-      for (let [key, value] of sockets[otherBot].map.entries()) {
-         if (value.pipedToId === 'none') {
-            value.pipedToId = id;
-            socket.pipedToId = key;
-            return;
-         }
-      }
+   //       for (let [key, value] of sockets[otherBot].map.entries()) {
+   //          if (value.pipedToId === 'none') {
+   //             value.pipedToId = id;
+   //             socket.pipedToId = key;
+   //             value.pipe(socket);
+   //             socket.pipe(value);
+   //             return;
+   //          }
+   //       }
 
-      socket.pipedToId = 'none';
-      info[otherBot].write('socket request');
-   });
+   //       if (info[otherBot].writing) {
+   //          requests.push(id);
+
+   //          info[otherBot].on(id, () => {
+   //             requestSocket();
+   //          });
+   //       } else {
+   //          requests.push(id);
+   //          requestSocket();
+   //       }
+
+   //       function requestSocket() {
+   //          info[otherBot].writing = true;
+
+   //          info[otherBot].write('socket request', () => {
+   //             requests.splice(0, 1);
+   //             info[otherBot].emit(requests[0]);
+   //             info[otherBot].writing = false;
+   //          });
+   //       }
+
+   //       socket.pipedToId = 'none';
+   //    });
 });
+
 setTimeout(() => {
    for (const bot in sockets) {
-      sockets[bot].map.forEach((element) => console.log(element.pipedToId));
-      sockets[bot].filler.forEach((element) => console.log(element.pipedToId));
+      // sockets[bot].map.forEach((element) => console.log(element.pipedToId));
+      // sockets[bot].filler.forEach((element) => console.log(element.pipedToId));
       // console.log(sockets);
    }
-}, 3000);
-
-// setTimeout(() => {
-//    info.bot1.write('socket request');
-//    info.bot2.write('socket request');
-//    setTimeout(() => {
-//       const bot1Socket = sockets.bot1.get('filler');
-//       const bot2Socket = sockets.bot2.get('filler');
-
-//       bot1Socket.pipe(bot2Socket);
-//       bot2Socket.pipe(bot1Socket);
-
-//       setTimeout(() => {
-//          bot1Socket.end();
-//       }, 1000);
-//    }, 1000);
-// }, 3000);
+}, 5000);
 
 server.listen('\\\\.\\pipe\\mypipe');
 
