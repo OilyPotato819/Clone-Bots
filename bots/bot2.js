@@ -13,34 +13,14 @@ clientInfo.on('error', (error) => {
    console.log(error);
 });
 
-clientInfo.on('data', () => {
-   const client = net.connect('\\\\.\\pipe\\mypipe');
-   client.write('bot2, filler');
-   fillerSockets.push(client);
-   console.log('bot2 making socket');
-
-   client.on('end', () => {
-      client.destroy();
-      fillerSockets.splice(fillerSockets.indexOf(client));
-
-      console.log('destroying socket 2');
-   });
-});
-
 let bot2Bot = new Bot(process.env.DISCORD_TOKEN_bot2, '', '', '804127257664028692');
 
 function subscribe(userId) {
-   let client = net.connect('\\\\.\\pipe\\mypipe');
-   client.write(`bot2, ${userId}`);
-   sockets.set(userId, client);
-
    let audio = bot2Bot.connection.receiver.subscribe(userId);
-   audio.pipe(client);
-   client.pipe(stdout);
+   // audio.pipe(client);
 
    client.on('data', (opusPacket) => {
       bot2Bot.connection.playOpusPacket(opusPacket);
-      console.log('playing');
    });
 }
 

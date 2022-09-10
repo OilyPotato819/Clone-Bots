@@ -1,9 +1,12 @@
 {
    "dependencies": {
       "@discordjs/voice": "^0.9.0",
+      "@ffmpeg-installer/ffmpeg": "^1.1.0",
+      "@ffprobe-installer/ffprobe": "^1.4.1",
       "discord-player": "^5.2.2",
       "discord.js": "^13.7.0",
       "dotenv": "^16.0.1",
+      "fluent-ffmpeg": "^2.1.2",
       "fs": "^0.0.1-security"
    }
 }

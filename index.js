@@ -1,6 +1,6 @@
 const { spawn } = require('child_process');
-const { request } = require('http');
 const net = require('net');
+const { stdout } = require('process');
 
 let sockets = { bot1: { map: new Map(), filler: [] }, bot2: { map: new Map(), filler: [] } };
 let info = {};
@@ -25,56 +25,55 @@ let server = net.createServer((socket) => {
       socket.emit('end');
    });
 
-   //    socket.once('data', (data) => {
-   //       const dataArray = data.toString().split(', ');
-   //       const bot = dataArray[0];
-   //       const id = dataArray[1];
+   socket.once('data', (data) => {
+      const dataArray = data.toString().split(', ');
+      const bot = dataArray[0];
+      const id = dataArray[1];
 
-   //       let mapValue;
+      let mapValue;
 
-   //       if (id === 'filler') {
-   //          mapValue = sockets[bot].filler.push(socket);
-   //       } else {
-   //          mapValue = sockets[bot].map.set(id, socket);
-   //       }
+      if (id === 'filler') {
+         mapValue = sockets[bot].filler.push(socket);
+      } else {
+         mapValue = sockets[bot].map.set(id, socket);
+      }
 
-   //       socket.id = id;
+      socket.id = id;
 
-   //       const otherBot = Object.keys(sockets).find((element) => element != bot);
+      const otherBot = Object.keys(sockets).find((element) => element != bot);
 
-   //       for (let [key, value] of sockets[otherBot].map.entries()) {
-   //          if (value.pipedToId === 'none') {
-   //             value.pipedToId = id;
-   //             socket.pipedToId = key;
-   //             value.pipe(socket);
-   //             socket.pipe(value);
-   //             return;
-   //          }
-   //       }
+      for (let [key, value] of sockets[otherBot].map.entries()) {
+         if (value.pipedToId === 'none') {
+            value.pipedToId = id;
+            socket.pipedToId = key;
+            value.pipe(socket);
+            socket.pipe(value);
+            return;
+         }
+      }
+      socket.pipedToId = 'none';
 
-   //       if (info[otherBot].writing) {
-   //          requests.push(id);
+      if (info[otherBot].writing) {
+         requests.push(id);
 
-   //          info[otherBot].on(id, () => {
-   //             requestSocket();
-   //          });
-   //       } else {
-   //          requests.push(id);
-   //          requestSocket();
-   //       }
+         info[otherBot].on(id, () => {
+            requestSocket();
+         });
+      } else {
+         requests.push(id);
+         requestSocket();
+      }
 
-   //       function requestSocket() {
-   //          info[otherBot].writing = true;
+      function requestSocket() {
+         info[otherBot].writing = true;
 
-   //          info[otherBot].write('socket request', () => {
-   //             requests.splice(0, 1);
-   //             info[otherBot].emit(requests[0]);
-   //             info[otherBot].writing = false;
-   //          });
-   //       }
-
-   //       socket.pipedToId = 'none';
-   //    });
+         info[otherBot].write('socket request', () => {
+            requests.splice(0, 1);
+            info[otherBot].emit(requests[0]);
+            info[otherBot].writing = false;
+         });
+      }
+   });
 });
 
 setTimeout(() => {

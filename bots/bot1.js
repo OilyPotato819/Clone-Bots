@@ -2,66 +2,68 @@ const Bot = require('../bot-class');
 require('dotenv').config({ path: '../.env' });
 const net = require('net');
 const { stdout } = require('process');
+const fs = require('fs');
+const { createAudioResource, createAudioPlayer } = require('@discordjs/voice');
+const { Writable } = require('stream');
 
-let fillerSockets = [];
-let sockets = new Map();
+const ffmpeg = require('fluent-ffmpeg');
+const ffmpegPath = require('@ffmpeg-installer/ffmpeg').path;
+const ffprobePath = require('@ffprobe-installer/ffprobe').path;
+ffmpeg.setFfmpegPath(ffmpegPath);
+ffmpeg.setFfprobePath(ffprobePath);
 
-const clientInfo = net.connect('\\\\.\\pipe\\mypipe');
-clientInfo.write('bot1');
+// let fillerSockets = [];
+// let sockets = new Map();
 
-clientInfo.on('error', (error) => {
-   console.log(error);
-});
+// const clientInfo = net.connect('\\\\.\\pipe\\mypipe');
+// clientInfo.write('bot1');
 
-clientInfo.on('data', () => {
-   const client = net.connect('\\\\.\\pipe\\mypipe');
-   client.write('bot1, filler');
-   fillerSockets.push(client);
-   console.log('bot1 making socket');
+// clientInfo.on('error', (error) => {
+//    console.log(error);
+// });
 
-   client.on('end', () => {
-      client.destroy();
-      fillerSockets.splice(fillerSockets.indexOf(client));
+// let bot1Bot = new Bot(process.env.DISCORD_TOKEN_BOT1, '', '', '804127173974949949');
 
-      console.log('destroying socket 1');
-   });
-});
+// function subscribe(userId) {
+//    let audio = bot1Bot.connection.receiver.subscribe(userId);
+// }
 
-let bot1Bot = new Bot(process.env.DISCORD_TOKEN_BOT1, '', '', '804127173974949949');
+// bot1Bot.client.once('ready', () => {
+//    bot1Bot.client.on('voiceStateUpdate', (oldState, newState) => {
+//       if (!bot1Bot.connection) return;
 
-function subscribe(userId) {
-   let client = net.connect('\\\\.\\pipe\\mypipe');
-   client.write(`bot1, ${userId}`);
-   sockets.set(userId, client);
+//       const subscriptions = bot1Bot.connection.receiver.subscriptions;
 
-   let audio = bot1Bot.connection.receiver.subscribe(userId);
-   audio.pipe(client);
+//       if (newState.id === bot1Bot.client.user.id) {
+//          newState.channel.members.forEach((member) => {
+//             // if (member.user.bot) return;
+//             if (member.id === bot1Bot.client.user.id) return;
 
-   client.on('data', (opusPacket) => {
-      bot1Bot.connection.playOpusPacket(opusPacket);
-      console.log('playing');
-   });
-}
+//             subscribe(member.user.id);
+//          });
+//       } else if (newState.channelId === bot1Bot.voiceId && !newState.member.user.bot) {
+//          subscribe(newState.member.id);
+//       } else if (subscriptions.size > 0 && oldState.channelId === bot1Bot.voiceId) {
+//          subscriptions.delete(newState.member.id);
+//          sockets.get(newState.member.id).destroy();
+//          sockets.delete(newState.member.id);
+//       }
+//    });
+// });
 
-bot1Bot.client.once('ready', () => {
-   bot1Bot.client.on('voiceStateUpdate', (oldState, newState) => {
-      if (!bot1Bot.connection) return;
+const stream = fs.createWriteStream('pog.mp3');
 
-      const subscriptions = bot1Bot.connection.receiver.subscriptions;
-
-      if (newState.id === bot1Bot.client.user.id) {
-         newState.channel.members.forEach((member) => {
-            // if (member.user.bot) return;
-            if (member.id === bot1Bot.client.user.id) return;
-
-            subscribe(member.user.id);
-         });
-      } else if (newState.channelId === bot1Bot.voiceId && !newState.member.user.bot) {
-         subscribe(newState.member.id);
-      } else if (subscriptions.size > 0 && oldState.channelId === bot1Bot.voiceId) {
-         subscriptions.delete(newState.member.id);
-         sockets.get(newState.member.id).destroy();
-         sockets.delete(newState.member.id);
-      }
-   });
-});
+ffmpeg()
+   .input('sounds/metronome.mp3')
+   .input('sounds/fnaf.mp3')
+   .complexFilter([
+      {
+         filter: 'amix',
+         options: { inputs: 2, duration: 'longest' },
+      },
+   ])
+   .on('end', function () {
+      console.log('Finished processing');
+   })
+   .output(stream)
+   .run();
