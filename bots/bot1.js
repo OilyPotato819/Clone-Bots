@@ -1,16 +1,8 @@
 const Bot = require('../bot-class');
 require('dotenv').config({ path: '../.env' });
-const net = require('net');
-const { stdout } = require('process');
 const fs = require('fs');
 const { createAudioResource, createAudioPlayer } = require('@discordjs/voice');
-const { Writable } = require('stream');
-
-const ffmpeg = require('fluent-ffmpeg');
-const ffmpegPath = require('@ffmpeg-installer/ffmpeg').path;
-const ffprobePath = require('@ffprobe-installer/ffprobe').path;
-ffmpeg.setFfmpegPath(ffmpegPath);
-ffmpeg.setFfprobePath(ffprobePath);
+const prism = require('prism-media');
 
 // let fillerSockets = [];
 // let sockets = new Map();
@@ -22,48 +14,54 @@ ffmpeg.setFfprobePath(ffprobePath);
 //    console.log(error);
 // });
 
-// let bot1Bot = new Bot(process.env.DISCORD_TOKEN_BOT1, '', '', '804127173974949949');
+let bot1Bot = new Bot(process.env.DISCORD_TOKEN_BOT1, '', '', '804127173974949949');
 
-// function subscribe(userId) {
-//    let audio = bot1Bot.connection.receiver.subscribe(userId);
-// }
+function subscribe(userId) {
+   let audio = bot1Bot.connection.receiver.subscribe(userId);
 
-// bot1Bot.client.once('ready', () => {
-//    bot1Bot.client.on('voiceStateUpdate', (oldState, newState) => {
-//       if (!bot1Bot.connection) return;
+   const opusDecoder = new prism.opus.Decoder({
+      frameSize: 960,
+      channels: 2,
+      rate: 48000,
+   });
 
-//       const subscriptions = bot1Bot.connection.receiver.subscriptions;
+   audio.pipe(opusDecoder);
 
-//       if (newState.id === bot1Bot.client.user.id) {
-//          newState.channel.members.forEach((member) => {
-//             // if (member.user.bot) return;
-//             if (member.id === bot1Bot.client.user.id) return;
+   opusDecoder.once('data', (chunk) => {
+      const stream = fs.createWriteStream('output.txt');
+      stream.write(chunk.toString('hex'));
 
-//             subscribe(member.user.id);
-//          });
-//       } else if (newState.channelId === bot1Bot.voiceId && !newState.member.user.bot) {
-//          subscribe(newState.member.id);
-//       } else if (subscriptions.size > 0 && oldState.channelId === bot1Bot.voiceId) {
-//          subscriptions.delete(newState.member.id);
-//          sockets.get(newState.member.id).destroy();
-//          sockets.delete(newState.member.id);
-//       }
-//    });
-// });
+      let data = '';
+      for (let word = 0; word < chunk.length / 2; word++) {
+         data += chunk[1].toString(16) + chunk[0].toString(16);
+         chunk = chunk.slice(2);
+      }
+      stream.write('\n\n');
+      stream.write(data);
+   });
+}
 
-const stream = fs.createWriteStream('pog.mp3');
+bot1Bot.client.once('ready', () => {
+   bot1Bot.client.on('voiceStateUpdate', (oldState, newState) => {
+      if (!bot1Bot.connection) return;
 
-ffmpeg()
-   .input('sounds/metronome.mp3')
-   .input('sounds/fnaf.mp3')
-   .complexFilter([
-      {
-         filter: 'amix',
-         options: { inputs: 2, duration: 'longest' },
-      },
-   ])
-   .on('end', function () {
-      console.log('Finished processing');
-   })
-   .output(stream)
-   .run();
+      subscribe('563161832215281709');
+
+      //       const subscriptions = bot1Bot.connection.receiver.subscriptions;
+
+      //       if (newState.id === bot1Bot.client.user.id) {
+      //          newState.channel.members.forEach((member) => {
+      //             // if (member.user.bot) return;
+      //             if (member.id === bot1Bot.client.user.id) return;
+
+      //             subscribe(member.user.id);
+      //          });
+      //       } else if (newState.channelId === bot1Bot.voiceId && !newState.member.user.bot) {
+      //          subscribe(newState.member.id);
+      //       } else if (subscriptions.size > 0 && oldState.channelId === bot1Bot.voiceId) {
+      //          subscriptions.delete(newState.member.id);
+      //          sockets.get(newState.member.id).destroy();
+      //          sockets.delete(newState.member.id);
+      //       }
+   });
+});
