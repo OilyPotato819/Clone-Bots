@@ -25,19 +25,21 @@ function subscribe(userId) {
       rate: 48000,
    });
 
-   audio.pipe(opusDecoder);
+   audio.pipe(opusDecoder).pipe(fs.createWriteStream('pipeOutput.bin'));
 
-   opusDecoder.once('data', (chunk) => {
-      const stream = fs.createWriteStream('output.txt');
-      stream.write(chunk.toString('hex'));
+   const stream = fs.createWriteStream('output.txt');
 
-      let data = '';
-      for (let word = 0; word < chunk.length / 2; word++) {
-         data += chunk[1].toString(16) + chunk[0].toString(16);
+   opusDecoder.on('data', (chunk) => {
+      const wordAmount = Buffer.byteLength(chunk) / 2;
+
+      stream.write(chunk.toString());
+
+      for (let word = 0; word < wordAmount; word++) {
+         // stream.write(parseInt(chunk[1].toString(16) + chunk[0].toString(16), 16) + '\n');
+         // stream.write(chunk[1].toString(16) + chunk[0].toString(16));
+
          chunk = chunk.slice(2);
       }
-      stream.write('\n\n');
-      stream.write(data);
    });
 }
 
