@@ -25,22 +25,24 @@ function subscribe(userId) {
       rate: 48000,
    });
 
-   audio.pipe(opusDecoder).pipe(fs.createWriteStream('pipeOutput.bin'));
+   fs.createReadStream('pipeOutput.txt').pipe(fs.createWriteStream('pipeOutput2.txt'));
 
-   const stream = fs.createWriteStream('output.txt');
+   // audio.pipe(opusDecoder).pipe(fs.createWriteStream('pipeOutput.txt'));
 
-   opusDecoder.on('data', (chunk) => {
-      const wordAmount = Buffer.byteLength(chunk) / 2;
+   // const stream = fs.createWriteStream('output.txt');
 
-      stream.write(chunk.toString());
+   // opusDecoder.on('data', (chunk) => {
+   //    const wordAmount = Buffer.byteLength(chunk) / 2;
 
-      for (let word = 0; word < wordAmount; word++) {
-         // stream.write(parseInt(chunk[1].toString(16) + chunk[0].toString(16), 16) + '\n');
-         // stream.write(chunk[1].toString(16) + chunk[0].toString(16));
+   //    stream.write(chunk.toString());
 
-         chunk = chunk.slice(2);
-      }
-   });
+   //    for (let word = 0; word < wordAmount; word++) {
+   //       // stream.write(parseInt(chunk[1].toString(16) + chunk[0].toString(16), 16) + '\n');
+   //       // stream.write(chunk[1].toString(16) + chunk[0].toString(16));
+
+   //       chunk = chunk.slice(2);
+   //    }
+   // });
 }
 
 bot1Bot.client.once('ready', () => {
