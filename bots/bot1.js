@@ -4,6 +4,29 @@ const fs = require('fs');
 const { createAudioResource, createAudioPlayer } = require('@discordjs/voice');
 const prism = require('prism-media');
 
+const opusDecoder = fs.createReadStream('pipeOutput.txt');
+const stream = fs.createWriteStream('output.txt');
+
+opusDecoder.on('data', (chunk) => {
+   const wordAmount = Buffer.byteLength(chunk) / 2;
+
+   let chunkIndex = 0;
+   for (let word = 0; word < wordAmount; word++, chunkIndex += 2) {
+      const hex = `0x${chunk[1 + chunkIndex].toString(16)}${chunk[0 + chunkIndex].toString(16)}`;
+      const amplitude = +hex - 0x10000;
+
+      // stream.write(amplitude.toString() + ' ');
+
+      // if (amplitude > 1000) {
+      //    console.log('louder');
+      // }
+
+      // const byte0 = chunk[0 + chunkIndex];
+      // const byte1 = chunk[1 + chunkIndex];
+      // stream.write(Buffer.from([byte1, byte0]));
+   }
+});
+
 // let fillerSockets = [];
 // let sockets = new Map();
 
@@ -14,58 +37,56 @@ const prism = require('prism-media');
 //    console.log(error);
 // });
 
-let bot1Bot = new Bot(process.env.DISCORD_TOKEN_BOT1, '', '', '804127173974949949');
+// let bot1Bot = new Bot(process.env.DISCORD_TOKEN_BOT1, '', '', '804127173974949949');
 
-function subscribe(userId) {
-   let audio = bot1Bot.connection.receiver.subscribe(userId);
+// function subscribe(userId) {
+//    let audio = bot1Bot.connection.receiver.subscribe(userId);
 
-   const opusDecoder = new prism.opus.Decoder({
-      frameSize: 960,
-      channels: 2,
-      rate: 48000,
-   });
+//    const opusDecoder = new prism.opus.Decoder({
+//       frameSize: 960,
+//       channels: 2,
+//       rate: 48000,
+//    });
 
-   fs.createReadStream('pipeOutput.txt').pipe(fs.createWriteStream('pipeOutput2.txt'));
+//    audio.pipe(opusDecoder).pipe(fs.createWriteStream('pipeOutput.txt'));
 
-   // audio.pipe(opusDecoder).pipe(fs.createWriteStream('pipeOutput.txt'));
+//    const stream = fs.createWriteStream('output.txt');
 
-   // const stream = fs.createWriteStream('output.txt');
+//    opusDecoder.on('data', (chunk) => {
+//       const wordAmount = Buffer.byteLength(chunk) / 2;
 
-   // opusDecoder.on('data', (chunk) => {
-   //    const wordAmount = Buffer.byteLength(chunk) / 2;
+//       stream.write(chunk.toString());
 
-   //    stream.write(chunk.toString());
+//       for (let word = 0; word < wordAmount; word++) {
+//          // stream.write(parseInt(chunk[1].toString(16) + chunk[0].toString(16), 16) + '\n');
+//          // stream.write(chunk[1].toString(16) + chunk[0].toString(16));
 
-   //    for (let word = 0; word < wordAmount; word++) {
-   //       // stream.write(parseInt(chunk[1].toString(16) + chunk[0].toString(16), 16) + '\n');
-   //       // stream.write(chunk[1].toString(16) + chunk[0].toString(16));
+//          chunk = chunk.slice(2);
+//       }
+//    });
+// }
 
-   //       chunk = chunk.slice(2);
-   //    }
-   // });
-}
+// bot1Bot.client.once('ready', () => {
+//    bot1Bot.client.on('voiceStateUpdate', (oldState, newState) => {
+//       if (!bot1Bot.connection) return;
 
-bot1Bot.client.once('ready', () => {
-   bot1Bot.client.on('voiceStateUpdate', (oldState, newState) => {
-      if (!bot1Bot.connection) return;
+//       subscribe('563161832215281709');
 
-      subscribe('563161832215281709');
+//       //       const subscriptions = bot1Bot.connection.receiver.subscriptions;
 
-      //       const subscriptions = bot1Bot.connection.receiver.subscriptions;
+//       //       if (newState.id === bot1Bot.client.user.id) {
+//       //          newState.channel.members.forEach((member) => {
+//       //             // if (member.user.bot) return;
+//       //             if (member.id === bot1Bot.client.user.id) return;
 
-      //       if (newState.id === bot1Bot.client.user.id) {
-      //          newState.channel.members.forEach((member) => {
-      //             // if (member.user.bot) return;
-      //             if (member.id === bot1Bot.client.user.id) return;
-
-      //             subscribe(member.user.id);
-      //          });
-      //       } else if (newState.channelId === bot1Bot.voiceId && !newState.member.user.bot) {
-      //          subscribe(newState.member.id);
-      //       } else if (subscriptions.size > 0 && oldState.channelId === bot1Bot.voiceId) {
-      //          subscriptions.delete(newState.member.id);
-      //          sockets.get(newState.member.id).destroy();
-      //          sockets.delete(newState.member.id);
-      //       }
-   });
-});
+//       //             subscribe(member.user.id);
+//       //          });
+//       //       } else if (newState.channelId === bot1Bot.voiceId && !newState.member.user.bot) {
+//       //          subscribe(newState.member.id);
+//       //       } else if (subscriptions.size > 0 && oldState.channelId === bot1Bot.voiceId) {
+//       //          subscriptions.delete(newState.member.id);
+//       //          sockets.get(newState.member.id).destroy();
+//       //          sockets.delete(newState.member.id);
+//       //       }
+//    });
+// });
