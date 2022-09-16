@@ -8,7 +8,6 @@
       "dotenv": "^16.0.1",
       "fluent-ffmpeg": "^2.1.2",
       "fs": "^0.0.1-security",
-      "meyda": "^5.5.1",
       "prism-media": "^1.3.4"
    }
 }
