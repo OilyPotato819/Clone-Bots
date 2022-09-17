@@ -5,14 +5,17 @@ const { createAudioResource, createAudioPlayer } = require('@discordjs/voice');
 const prism = require('prism-media');
 
 const opusDecoder = fs.createReadStream('pipeOutput.txt');
-const stream = fs.createWriteStream('output.csv');
+const stream = fs.createWriteStream('graph/output.csv');
 
 opusDecoder.on('data', (chunk) => {
    const wordAmount = Buffer.byteLength(chunk) / 2;
 
    let chunkIndex = 0;
    for (let word = 0; word < wordAmount; word++, chunkIndex += 2) {
-      const hex = `0x${chunk[1 + chunkIndex].toString(16)}${chunk[0 + chunkIndex].toString(16)}`;
+      const hex0 = chunk[0 + chunkIndex].toString(16).padStart(2, '0');
+      const hex1 = chunk[1 + chunkIndex].toString(16).padStart(2, '0');
+
+      const hex = `0x${hex1}${hex0}`;
       const amplitude = +hex > 0x7fff ? +hex - 0x10000 : +hex;
 
       stream.write(amplitude.toString() + ',');
