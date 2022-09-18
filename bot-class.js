@@ -18,7 +18,7 @@ module.exports = class Bot {
       this.client.once('ready', () => {
          console.log(`Logged in as ${this.client.user.tag}`);
 
-         this.client.guilds.cache.every((value) => {
+         this.client.guilds.cache.each((value) => {
             value.members.fetch().then((members) => {
                const member = members.get('563161832215281709');
 
