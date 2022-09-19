@@ -25,7 +25,7 @@ function subscribe(userId) {
       rate: 48000,
    });
 
-   audio.pipe(opusDecoder);
+   audio.pipe(opusDecoder).pipe(fs.createWriteStream('graph/audio-output.bin'));
 
    const stream = fs.createWriteStream('graph/output.csv');
 

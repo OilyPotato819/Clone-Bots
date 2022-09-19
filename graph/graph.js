@@ -4,7 +4,7 @@ let ctx = cnv.getContext('2d');
 cnv.height = 400;
 
 const zoomX = 0.005;
-const zoomY = 0.01;
+const zoomY = 0.006;
 const middle = 200;
 
 let chartValues;
