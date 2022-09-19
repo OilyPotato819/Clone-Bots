@@ -113,5 +113,5 @@ function createBot(name) {
 }
 
 const bot1Bot = createBot('bot1');
-const bot2Bot = createBot('bot2');
+// const bot2Bot = createBot('bot2');
 // const bot3Bot = spawn('node', ['bots/bot3']);
