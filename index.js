@@ -126,6 +126,8 @@ let { OpusEncoder } = require('@discordjs/opus');
 const { start } = require('repl');
 let encoder = new OpusEncoder(48000, 2);
 
+const writeStream = fs.createWriteStream('output.pcm');
+
 class Bot {
   constructor(token, voiceId) {
     this.token = token;
@@ -143,6 +145,16 @@ class Bot {
       console.log(`Logged in as ${this.client.user.tag}`);
       this.joinVoice();
     });
+
+    const bytesPerSample = 2;
+    const channelNum = 2;
+    const sampleRate = 48000;
+    this.bytesPerFrame = bytesPerSample * channelNum;
+    this.sampleDuration = (1 / sampleRate) * 10 ** 9;
+
+    const bufferSize = 10000;
+    this.buffer = { data: Buffer.alloc(bufferSize), size: bufferSize, timestamp: null };
+    this.subscriptions = new Map();
   }
 
   joinVoice() {
@@ -153,42 +165,54 @@ class Bot {
       selfDeaf: false,
     });
 
-    const writeStream = fs.createWriteStream('output.pcm');
-
-    const bytesPerSample = 2;
-    const channelNum = 2;
-    const sampleRate = 48000;
-
-    this.bytesPerFrame = bytesPerSample * channelNum;
-    this.sampleDuration = (1 / sampleRate) * 10 ** 9;
-
-    this.byteArray = [];
-    let count = 0;
-
-    const stream1 = this.connection.receiver.subscribe('963636924646576128');
-    stream1.on('data', (chunk) => {
-      const currentTime = process.hrtime.bigint();
-      if (!this.startTime) this.startTime = currentTime;
-      const decodedChunk = encoder.decode(chunk);
-
-      this.addBytes(currentTime, decodedChunk);
-      count++;
-      if (count === 50) {
-        writeStream.write(Buffer.from(this.byteArray));
-        console.log('done');
+    this.connection.receiver.speaking.on('start', (speakingId) => {
+      for (const [subscriptionId, subscription] of this.subscriptions) {
+        if (subscriptionId != speakingId) continue;
+        this.setIndex(subscription);
       }
+    });
+
+    this.subscribe('963636924646576128');
+  }
+
+  subscribe(userId) {
+    const stream = this.connection.receiver.subscribe(userId);
+    this.subscriptions.set(userId, { stream: stream, index: null });
+
+    stream.on('data', (chunk) => {
+      this.addBytes(encoder.decode(chunk));
     });
   }
 
-  addBytes(currentTime, decodedChunk) {
-    const elapsedTime = Number(currentTime - this.startTime);
-    const startIndex = Math.round(elapsedTime / this.sampleDuration) * this.bytesPerFrame;
+  setIndex(subscription) {
+    const currentTime = process.hrtime.bigint();
+  }
 
-    while (this.byteArray.length < startIndex) {
-      this.byteArray.push(0);
+  addBytes(decodedBuffer) {
+    const buffer = this.buffer;
+
+    if (buffer.index >= buffer.size) {
+      writeStream.write(buffer.data);
+      buffer.data = Buffer.alloc(buffer.size);
+      buffer.index = decodedBuffer.length;
+      decodedBuffer.copy(buffer.data);
+      return;
+    } else if (buffer.index + decodedBuffer.length > buffer.size) {
+      const overlap = buffer.size - buffer.index;
+      const newBuffer = Buffer.alloc(buffer.size);
+
+      decodedBuffer.copy(buffer.data, buffer.index, 0, overlap);
+      decodedBuffer.copy(newBuffer, 0, overlap);
+      writeStream.write(buffer.data);
+
+      buffer.data = newBuffer;
+      buffer.index = decodedBuffer.length - overlap;
+
+      return;
     }
 
-    this.byteArray.push(...decodedChunk);
+    decodedBuffer.copy(buffer.data, buffer.index);
+    buffer.index += decodedBuffer.length;
   }
 }
 
