@@ -118,13 +118,10 @@
 
 const Discord = require('discord.js');
 const fs = require('fs');
-const { joinVoiceChannel, createAudioPlayer, createAudioResource, StreamType, NoSubscriberBehavior } = require('@discordjs/voice');
-const { create } = require('domain');
+const { joinVoiceChannel } = require('@discordjs/voice');
 require('dotenv').config();
 
 let { OpusEncoder } = require('@discordjs/opus');
-const { start } = require('repl');
-let encoder = new OpusEncoder(48000, 2);
 
 const writeStream = fs.createWriteStream('output.pcm');
 
@@ -146,15 +143,9 @@ class Bot {
       this.joinVoice();
     });
 
-    const bytesPerSample = 2;
-    const channelNum = 2;
-    const sampleRate = 48000;
-    this.bytesPerFrame = bytesPerSample * channelNum;
-    this.sampleDuration = (1 / sampleRate) * 10 ** 9;
-
-    const bufferSize = 10000;
-    this.buffer = { data: Buffer.alloc(bufferSize), size: bufferSize, timestamp: null };
-    this.subscriptions = new Map();
+    this.buffer = Buffer.alloc(3840);
+    this.wroteToBuffer = [];
+    this.encoder = new OpusEncoder(48000, 2);
   }
 
   joinVoice() {
@@ -165,54 +156,34 @@ class Bot {
       selfDeaf: false,
     });
 
-    this.connection.receiver.speaking.on('start', (speakingId) => {
-      for (const [subscriptionId, subscription] of this.subscriptions) {
-        if (subscriptionId != speakingId) continue;
-        this.setIndex(subscription);
-      }
-    });
-
     this.subscribe('963636924646576128');
+    this.subscribe('184405311681986560');
   }
 
   subscribe(userId) {
     const stream = this.connection.receiver.subscribe(userId);
-    this.subscriptions.set(userId, { stream: stream, index: null });
+    const encoder = new OpusEncoder(48000, 2);
 
     stream.on('data', (chunk) => {
-      this.addBytes(encoder.decode(chunk));
+      this.addBytes(userId, encoder.decode(chunk));
     });
   }
 
-  setIndex(subscription) {
-    const currentTime = process.hrtime.bigint();
-  }
-
-  addBytes(decodedBuffer) {
-    const buffer = this.buffer;
-
-    if (buffer.index >= buffer.size) {
-      writeStream.write(buffer.data);
-      buffer.data = Buffer.alloc(buffer.size);
-      buffer.index = decodedBuffer.length;
-      decodedBuffer.copy(buffer.data);
-      return;
-    } else if (buffer.index + decodedBuffer.length > buffer.size) {
-      const overlap = buffer.size - buffer.index;
-      const newBuffer = Buffer.alloc(buffer.size);
-
-      decodedBuffer.copy(buffer.data, buffer.index, 0, overlap);
-      decodedBuffer.copy(newBuffer, 0, overlap);
-      writeStream.write(buffer.data);
-
-      buffer.data = newBuffer;
-      buffer.index = decodedBuffer.length - overlap;
-
-      return;
+  addBytes(id, decodedBuffer) {
+    if (this.wroteToBuffer.includes(id)) {
+      this.wroteToBuffer = [];
+      this.connection.playOpusPacket(this.encoder.encode(this.buffer));
+      this.buffer = Buffer.alloc(this.buffer.length);
     }
 
-    decodedBuffer.copy(buffer.data, buffer.index);
-    buffer.index += decodedBuffer.length;
+    for (let i = 0; i < this.buffer.length; i += 2) {
+      const word1 = this.buffer.readInt16LE(i);
+      const word2 = decodedBuffer.readInt16LE(i);
+      const clampedSum = Math.min(Math.max(word1 + word2, -32768), 32767);
+      this.buffer.writeInt16LE(clampedSum, i);
+    }
+
+    this.wroteToBuffer.push(id);
   }
 }
 
