@@ -116,75 +116,32 @@
 // const bot2Bot = createBot('bot2');
 // const bot3Bot = spawn('node', ['bots/bot3']);
 
-const Discord = require('discord.js');
-const fs = require('fs');
-const { joinVoiceChannel } = require('@discordjs/voice');
-require('dotenv').config();
+const { fork } = require('child_process');
 
-let { OpusEncoder } = require('@discordjs/opus');
+const bot1 = createBot('bot1');
+const bot2 = createBot('bot2');
 
-const writeStream = fs.createWriteStream('output.pcm');
+bot1.stdout.pipe(bot2.stdin);
+bot2.stdout.pipe(bot1.stdin);
 
-class Bot {
-  constructor(token, voiceId) {
-    this.token = token;
+function createBot(name) {
+  const bot = fork(`test-bots/${name}.js`, [], { silent: true });
 
-    this.voiceId = voiceId;
-    this.guildId = '785682503968096276';
+  bot.on('error', (error) => {
+    console.log(`${name}: ${error}`);
+  });
 
-    this.client = new Discord.Client({
-      intents: ['GUILDS', 'GUILD_MESSAGES', 'GUILD_VOICE_STATES', 'GUILD_MEMBERS'],
-    });
+  bot.on('close', (code) => {
+    console.log(`${name} exited with code ${code}`);
+  });
 
-    this.client.login(this.token);
+  bot.on('message', (message) => {
+    console.log(message);
+  });
 
-    this.client.once('ready', () => {
-      console.log(`Logged in as ${this.client.user.tag}`);
-      this.joinVoice();
-    });
+  bot.stderr.on('data', (chunk) => {
+    console.log(chunk.toString());
+  });
 
-    this.buffer = Buffer.alloc(3840);
-    this.wroteToBuffer = [];
-    this.encoder = new OpusEncoder(48000, 2);
-  }
-
-  joinVoice() {
-    this.connection = joinVoiceChannel({
-      channelId: this.voiceId,
-      guildId: this.guildId,
-      adapterCreator: this.client.guilds.cache.get(this.guildId).voiceAdapterCreator,
-      selfDeaf: false,
-    });
-
-    this.subscribe('963636924646576128');
-    this.subscribe('184405311681986560');
-  }
-
-  subscribe(userId) {
-    const stream = this.connection.receiver.subscribe(userId);
-    const encoder = new OpusEncoder(48000, 2);
-
-    stream.on('data', (chunk) => {
-      this.addBytes(userId, encoder.decode(chunk));
-    });
-  }
-
-  addBytes(id, decodedBuffer) {
-    if (this.wroteToBuffer.includes(id)) {
-      this.wroteToBuffer = [];
-      this.connection.playOpusPacket(this.encoder.encode(this.buffer));
-      this.buffer = Buffer.alloc(this.buffer.length);
-    }
-
-    for (let i = 0; i < this.buffer.length; i += 2) {
-      const word1 = this.buffer.readInt16LE(i);
-      const word2 = decodedBuffer.readInt16LE(i);
-      const clampedSum = Math.min(Math.max(word1 + word2, -32768), 32767);
-      this.buffer.writeInt16LE(clampedSum, i);
-    }
-
-    this.wroteToBuffer.push(id);
-  }
+  return bot;
 }
-
-new Bot(process.env.BOT1_ID, '982842955096285215');
